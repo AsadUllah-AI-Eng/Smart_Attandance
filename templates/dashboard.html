@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard-container">
+    <h1 class="text-center">Smart Attendance System</h1>
+    <p class="text-center text-muted">AI-Powered Face Recognition for Classroom Attendance</p>
+
+    <div class="row g-3 mb-3">
+        <!-- Statistics Cards -->
+        <div class="col-md-3">
+            <div class="card bg-primary text-white stats-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle">Total Students</h6>
+                            <h2 class="card-title">{{ total_students }}</h2>
+                        </div>
+                        <div class="opacity-50">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white stats-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle">Total Courses</h6>
+                            <h2 class="card-title">{{ total_courses }}</h2>
+                        </div>
+                        <div class="opacity-50">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white stats-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle">Present Today</h6>
+                            <h2 class="card-title">{{ present_today }}</h2>
+                        </div>
+                        <div class="opacity-50">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white stats-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-subtitle">Attendance Rate</h6>
+                            <h2 class="card-title">{{ attendance_rate }}</h2>
+                        </div>
+                        <div class="opacity-50">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Export Data -->
+    <div class="card mb-3">
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="card-title m-0">Export Data</h5>
+            </div>
+            <div class="btn-group">
+                <a href="{{ url_for('export_students') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-export me-1"></i>Export Students
+                </a>
+                <a href="{{ url_for('export_courses') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-export me-1"></i>Export Courses
+                </a>
+                <a href="{{ url_for('export_attendance') }}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-file-export me-1"></i>Export Attendance
+                </a>
+                <a href="{{ url_for('export_all') }}" class="btn btn-sm btn-outline-success">
+                    <i class="fas fa-file-export me-1"></i>Export All Data
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Quick Actions</h5>
+            <div class="row g-3 quick-actions">
+                <!-- Take Attendance -->
+                <div class="col-md-3">
+                    <a href="/take-attendance" class="text-decoration-none">
+                        <div class="card bg-primary text-white text-center">
+                            <i class="fas fa-camera"></i>
+                            <h5>Take Attendance</h5>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Register Student -->
+                <div class="col-md-3">
+                    <a href="/register-student" class="text-decoration-none">
+                        <div class="card bg-success text-white text-center">
+                            <i class="fas fa-user-plus"></i>
+                            <h5>Register Student</h5>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- View Records -->
+                <div class="col-md-3">
+                    <a href="/records" class="text-decoration-none">
+                        <div class="card bg-info text-white text-center">
+                            <i class="fas fa-clipboard-list"></i>
+                            <h5>View Records</h5>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Manage Students -->
+                <div class="col-md-3">
+                    <a href="/students" class="text-decoration-none">
+                        <div class="card bg-warning text-white text-center">
+                            <i class="fas fa-users-cog"></i>
+                            <h5>Manage Students</h5>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

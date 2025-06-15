@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-clipboard-list fa-2x text-primary me-2"></i>
+                <h4 class="mb-0">Attendance Records</h4>
+            </div>
+            <div>
+                <a href="{{ url_for('export_attendance') }}" class="btn btn-outline-success me-2">
+                    <i class="fas fa-download me-2"></i>Export
+                </a>
+                <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#filterModal">
+                    <i class="fas fa-filter me-2"></i>Filter
+                </button>
+                <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#clearRecordsModal">
+                    <i class="fas fa-trash me-2"></i>Clear Records
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-2">
+                <div class="card bg-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Total</h6>
+                                <h3 class="mb-0">{{ stats.total }}</h3>
+                            </div>
+                            <div class="text-primary opacity-50">
+                                <i class="fas fa-clipboard-list fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Present</h6>
+                                <h3 class="mb-0">{{ stats.present }}</h3>
+                            </div>
+                            <div class="text-success opacity-50">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Absent</h6>
+                                <h3 class="mb-0">{{ stats.absent }}</h3>
+                            </div>
+                            <div class="text-danger opacity-50">
+                                <i class="fas fa-times-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Late</h6>
+                                <h3 class="mb-0">{{ stats.late }}</h3>
+                            </div>
+                            <div class="text-warning opacity-50">
+                                <i class="fas fa-clock fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Unknown</h6>
+                                <h3 class="mb-0">{{ stats.unknown }}</h3>
+                            </div>
+                            <div class="text-secondary opacity-50">
+                                <i class="fas fa-question-circle fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="card bg-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-muted mb-2">Pending</h6>
+                                <h3 class="mb-0">{{ stats.pending }}</h3>
+                            </div>
+                            <div class="text-info opacity-50">
+                                <i class="fas fa-hourglass-half fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Filters -->
+        {% if current_filters.start_date or current_filters.end_date or current_filters.course_id or current_filters.status %}
+        <div class="alert alert-info mb-4">
+            <h6 class="mb-2"><i class="fas fa-filter me-2"></i>Active Filters:</h6>
+            <div class="d-flex flex-wrap gap-2">
+                {% if current_filters.start_date %}
+                <span class="badge bg-primary">From: {{ current_filters.start_date }}</span>
+                {% endif %}
+                {% if current_filters.end_date %}
+                <span class="badge bg-primary">To: {{ current_filters.end_date }}</span>
+                {% endif %}
+                {% if current_filters.course_id %}
+                <span class="badge bg-primary">Course: {{ courses|selectattr('id', 'equalto', current_filters.course_id|int)|map(attribute='name')|first }}</span>
+                {% endif %}
+                {% if current_filters.status %}
+                <span class="badge bg-primary">Status: {{ current_filters.status|title }}</span>
+                {% endif %}
+                <a href="{{ url_for('records') }}" class="badge bg-secondary text-decoration-none">Clear All</a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Records Table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Course</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Confidence</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if records %}
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.student.student_id if record.student else 'N/A' }}</td>
+                            <td>{{ record.student.name if record.student else 'Unknown' }}</td>
+                            <td>{{ record.course.name }}</td>
+                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ record.time.strftime('%H:%M:%S') }}</td>
+                            <td>
+                                <span class="badge {% if record.status == 'present' %}bg-success
+                                                  {% elif record.status == 'late' %}bg-warning
+                                                  {% elif record.status == 'absent' %}bg-danger
+                                                  {% elif record.status == 'pending' %}bg-info
+                                                  {% else %}bg-secondary{% endif %}">
+                                    {{ record.status|title }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if record.confidence %}
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar {% if record.confidence >= 0.8 %}bg-success
+                                                                {% elif record.confidence >= 0.6 %}bg-warning
+                                                                {% else %}bg-danger{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ (record.confidence * 100)|round|int }}%"
+                                             aria-valuenow="{{ (record.confidence * 100)|round|int }}"
+                                             aria-valuemin="0"
+                                             aria-valuemax="100">
+                                            {{ "%.1f"|format(record.confidence * 100) }}%
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <span class="text-muted">N/A</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.capture_path %}
+                                <a href="{{ url_for('static', filename=record.capture_path) }}" 
+                                   class="btn btn-sm btn-outline-primary"
+                                   target="_blank"
+                                   title="View Capture">
+                                    <i class="fas fa-image"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{{ url_for('attendance_review') }}?record_id={{ record.id }}" 
+                                   class="btn btn-sm btn-outline-warning"
+                                   title="Review Details">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <i class="fas fa-clipboard text-muted fa-3x mb-3 d-block"></i>
+                                <h5 class="text-muted">No attendance records found</h5>
+                                {% if current_filters.start_date or current_filters.end_date or current_filters.course_id or current_filters.status %}
+                                <p class="text-muted">Try adjusting your filters</p>
+                                <a href="{{ url_for('records') }}" class="btn btn-outline-primary">Clear Filters</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Modal -->
+<div class="modal fade" id="filterModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-filter me-2"></i>Filter Records</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('records') }}" method="GET">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Date Range</label>
+                        <div class="row g-2">
+                            <div class="col">
+                                <input type="date" class="form-control" name="start_date" value="{{ current_filters.start_date }}">
+                                <small class="text-muted">From</small>
+                            </div>
+                            <div class="col">
+                                <input type="date" class="form-control" name="end_date" value="{{ current_filters.end_date }}">
+                                <small class="text-muted">To</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Course</label>
+                        <select class="form-select" name="course">
+                            <option value="">All Courses</option>
+                            {% for course in courses %}
+                            <option value="{{ course.id }}" {% if current_filters.course_id|string == course.id|string %}selected{% endif %}>
+                                {{ course.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <select class="form-select" name="status">
+                            <option value="">All Status</option>
+                            <option value="present" {% if current_filters.status == 'present' %}selected{% endif %}>Present</option>
+                            <option value="absent" {% if current_filters.status == 'absent' %}selected{% endif %}>Absent</option>
+                            <option value="late" {% if current_filters.status == 'late' %}selected{% endif %}>Late</option>
+                            <option value="unknown" {% if current_filters.status == 'unknown' %}selected{% endif %}>Unknown</option>
+                            <option value="pending" {% if current_filters.status == 'pending' %}selected{% endif %}>Pending</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="{{ url_for('records') }}" class="btn btn-secondary">Reset</a>
+                    <button type="submit" class="btn btn-primary">Apply Filter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Clear Records Modal -->
+<div class="modal fade" id="clearRecordsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Clear Attendance Records
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                <form id="clearRecordsForm" action="{{ url_for('clear_records') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">Clear Records For:</label>
+                        <select class="form-select" name="clear_option" required>
+                            <option value="all">All Records</option>
+                            <option value="date_range">Date Range</option>
+                            <option value="course">Specific Course</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Date Range Options (initially hidden) -->
+                    <div id="dateRangeOptions" class="mb-3" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label class="form-label">Start Date:</label>
+                                <input type="date" class="form-control" name="start_date">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Date:</label>
+                                <input type="date" class="form-control" name="end_date">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Course Selection (initially hidden) -->
+                    <div id="courseOption" class="mb-3" style="display: none;">
+                        <label class="form-label">Select Course:</label>
+                        <select class="form-select" name="course_id">
+                            {% for course in courses %}
+                            <option value="{{ course.id }}">{{ course.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Confirmation Input -->
+                    <div class="mb-3">
+                        <label class="form-label">Type "DELETE" to confirm:</label>
+                        <input type="text" class="form-control" name="confirmation" required 
+                               pattern="DELETE" title="Please type 'DELETE' to confirm">
+                        <small class="text-muted">This action will permanently delete the selected records.</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="clearRecordsForm" class="btn btn-danger">
+                    <i class="fas fa-trash me-2"></i>Clear Records
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clearOption = document.querySelector('select[name="clear_option"]');
+    const dateRangeOptions = document.getElementById('dateRangeOptions');
+    const courseOption = document.getElementById('courseOption');
+    
+    clearOption.addEventListener('change', function() {
+        dateRangeOptions.style.display = this.value === 'date_range' ? 'block' : 'none';
+        courseOption.style.display = this.value === 'course' ? 'block' : 'none';
+        
+        // Reset validation requirements based on selection
+        const startDate = document.querySelector('input[name="start_date"]');
+        const endDate = document.querySelector('input[name="end_date"]');
+        const courseSelect = document.querySelector('select[name="course_id"]');
+        
+        startDate.required = this.value === 'date_range';
+        endDate.required = this.value === 'date_range';
+        courseSelect.required = this.value === 'course';
+    });
+});
+</script>
+{% endblock %}
+
+{% endblock %} 

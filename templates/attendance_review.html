@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Attendance Review</h2>
+        <a href="{{ url_for('records') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Records
+        </a>
+    </div>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Date Range</label>
+                    <input type="date" name="start_date" class="form-control" value="{{ request.args.get('start_date', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">&nbsp;</label>
+                    <input type="date" name="end_date" class="form-control" value="{{ request.args.get('end_date', '') }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All</option>
+                        <option value="pending" {% if request.args.get('status') == 'pending' %}selected{% endif %}>Pending</option>
+                        <option value="present" {% if request.args.get('status') == 'present' %}selected{% endif %}>Present</option>
+                        <option value="absent" {% if request.args.get('status') == 'absent' %}selected{% endif %}>Absent</option>
+                        <option value="unknown" {% if request.args.get('status') == 'unknown' %}selected{% endif %}>Unknown</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Course</label>
+                    <select name="course" class="form-select">
+                        <option value="">All Courses</option>
+                        {% for course in courses %}
+                        <option value="{{ course.id }}" {% if request.args.get('course')|int == course.id %}selected{% endif %}>
+                            {{ course.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">Apply Filters</button>
+                    <a href="{{ url_for('attendance_review') }}" class="btn btn-secondary">Clear Filters</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Records</h5>
+                    <p class="card-text display-6">{{ stats.total }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Present</h5>
+                    <p class="card-text display-6">{{ stats.present }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h5 class="card-title">Pending</h5>
+                    <p class="card-text display-6">{{ stats.pending }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Unknown</h5>
+                    <p class="card-text display-6">{{ stats.unknown }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Records -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Course</th>
+                            <th>Student</th>
+                            <th>Status</th>
+                            <th>Confidence</th>
+                            <th>Image</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in records %}
+                        <tr>
+                            <td>{{ record.date.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ record.time.strftime('%H:%M:%S') }}</td>
+                            <td>{{ record.course.name }}</td>
+                            <td>
+                                {% if record.student %}
+                                    {{ record.student.name }}
+                                {% elif record.status == 'pending' %}
+                                    <span class="badge bg-warning">Pending Recognition</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Unknown</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ record.status_color }}">
+                                    {{ record.status.title() }}
+                                </span>
+                            </td>
+                            <td>
+                                {% if record.confidence %}
+                                    <div class="progress">
+                                        <div class="progress-bar {% if record.confidence < 0.6 %}bg-danger{% elif record.confidence < 0.8 %}bg-warning{% else %}bg-success{% endif %}"
+                                             role="progressbar"
+                                             style="width: {{ (record.confidence * 100)|int }}%">
+                                            {{ "%.1f"|format(record.confidence * 100) }}%
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.capture_path %}
+                                    <a href="{{ url_for('static', filename=record.capture_path) }}" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                <button type="button" 
+                                        class="btn btn-sm btn-primary"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#editModal{{ record.id }}">
+                                    Edit
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Edit Modal -->
+                        <div class="modal fade" id="editModal{{ record.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form action="{{ url_for('update_attendance', record_id=record.id) }}" method="POST">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Edit Attendance Record</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-3">
+                                                <label class="form-label">Student</label>
+                                                <select name="student_id" class="form-select">
+                                                    <option value="">Unknown</option>
+                                                    {% for student in students %}
+                                                    <option value="{{ student.id }}" 
+                                                            {% if record.student_id == student.id %}selected{% endif %}>
+                                                        {{ student.name }} ({{ student.student_id }})
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label">Status</label>
+                                                <select name="status" class="form-select">
+                                                    <option value="present" {% if record.status == 'present' %}selected{% endif %}>Present</option>
+                                                    <option value="absent" {% if record.status == 'absent' %}selected{% endif %}>Absent</option>
+                                                    <option value="unknown" {% if record.status == 'unknown' %}selected{% endif %}>Unknown</option>
+                                                </select>
+                                            </div>
+                                            {% if record.capture_path %}
+                                            <div class="mb-3">
+                                                <label class="form-label">Captured Image</label>
+                                                <img src="{{ url_for('static', filename=record.capture_path) }}"
+                                                     class="img-fluid rounded"
+                                                     alt="Captured face">
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            <button type="submit" class="btn btn-primary">Save changes</button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

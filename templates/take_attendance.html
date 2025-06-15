@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-camera fa-2x text-primary me-2"></i>
+                <h4 class="mb-0">Take Attendance</h4>
+            </div>
+        </div>
+
+        <!-- Course Selection -->
+        <div class="mb-4">
+            <label for="courseSelect" class="form-label">Select Course</label>
+            <select class="form-select" id="courseSelect" required>
+                <option value="">Choose a course...</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}">{{ course.identifier }} - {{ course.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Camera Feed -->
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="text-center">
+                            <img id="videoFeed" src="" alt="Camera Feed" style="max-width: 100%; display: none;">
+                            <div id="cameraPlaceholder" class="py-5 bg-light rounded">
+                                <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Camera feed will appear here</h5>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title mb-4">Camera Controls</h5>
+                        <div class="d-grid gap-2">
+                            <button id="startBtn" class="btn btn-primary">
+                                <i class="fas fa-play me-2"></i>Start Camera
+                            </button>
+                            <button id="captureBtn" class="btn btn-success" disabled>
+                                <i class="fas fa-camera me-2"></i>Capture Attendance
+                            </button>
+                            <button id="stopBtn" class="btn btn-danger" disabled>
+                                <i class="fas fa-stop me-2"></i>Stop Camera
+                            </button>
+                        </div>
+                        <!-- Recognition Status -->
+                        <div id="recognitionStatus" class="mt-4" style="display: none;">
+                            <h6 class="mb-3">Recognition Status</h6>
+                            <div class="alert alert-info">
+                                <i class="fas fa-spinner fa-spin me-2"></i>
+                                Processing...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Footer -->
+<div class="text-center text-muted mt-4">
+    <small>© 2025 Smart Attendance System</small>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let isCapturing = false;
+
+document.getElementById('startBtn').addEventListener('click', function() {
+    const courseId = document.getElementById('courseSelect').value;
+    if (!courseId) {
+        alert('Please select a course first!');
+        return;
+    }
+
+    // Start the camera
+    fetch('/start_capture', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ course_id: courseId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            isCapturing = true;
+            document.getElementById('videoFeed').src = '/video_feed';
+            document.getElementById('videoFeed').style.display = 'block';
+            document.getElementById('cameraPlaceholder').style.display = 'none';
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('captureBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('courseSelect').disabled = true;
+        }
+    });
+});
+
+document.getElementById('captureBtn').addEventListener('click', function() {
+    if (!isCapturing) return;
+    
+    // Show recognition status
+    document.getElementById('recognitionStatus').style.display = 'block';
+    
+    // Trigger attendance capture
+    fetch('/capture_attendance', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update recognition status
+        const statusDiv = document.getElementById('recognitionStatus');
+        let alertClass = 'alert-info';
+        let icon = 'fa-info-circle';
+        
+        switch(data.status) {
+            case 'success':
+                alertClass = 'alert-success';
+                icon = 'fa-check-circle';
+                break;
+            case 'warning':
+                alertClass = 'alert-warning';
+                icon = 'fa-exclamation-circle';
+                break;
+            case 'error':
+                alertClass = 'alert-danger';
+                icon = 'fa-times-circle';
+                break;
+        }
+        
+        // Split message into lines if it contains newlines
+        const messages = data.message.split('\n').map(msg => 
+            `<div><i class="fas ${icon} me-2"></i>${msg}</div>`
+        ).join('');
+        
+        statusDiv.innerHTML = `
+            <h6 class="mb-3">Recognition Status</h6>
+            <div class="alert ${alertClass}">
+                ${messages}
+                ${data.confidence ? `<div class="mt-2"><small>Confidence: ${data.confidence}</small></div>` : ''}
+            </div>
+        `;
+    });
+});
+
+document.getElementById('stopBtn').addEventListener('click', function() {
+    if (!isCapturing) return;
+    
+    fetch('/stop_capture', {
+        method: 'POST'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            isCapturing = false;
+            document.getElementById('videoFeed').src = '';
+            document.getElementById('videoFeed').style.display = 'none';
+            document.getElementById('cameraPlaceholder').style.display = 'block';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('captureBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = true;
+            document.getElementById('courseSelect').disabled = false;
+            document.getElementById('recognitionStatus').style.display = 'none';
+        }
+    });
+});
+</script>
+{% endblock %} 

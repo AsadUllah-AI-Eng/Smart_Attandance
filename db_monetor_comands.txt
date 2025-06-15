@@ -1,0 +1,30 @@
+# Show all monitor commands
+flask monitor --help
+
+# Get database statistics
+flask monitor stats
+
+# Generate attendance report
+flask monitor report
+flask monitor report --days 30
+
+# Check database health
+flask monitor health
+
+# Create database backup
+flask monitor backup
+
+
+General Database Operations:
+
+# Show all database commands
+flask database --help
+
+# Get basic statistics
+flask database stats
+
+# Check today's attendance
+flask check-today
+
+# List all courses
+flask list-courses

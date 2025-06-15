@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-user-plus fa-2x text-primary me-2"></i>
+                <h4 class="mb-0">Register New Student</h4>
+            </div>
+            <a href="{{ url_for('students_list') }}" class="btn btn-light">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+        </div>
+
+        <form action="{{ url_for('register_student') }}" method="POST" enctype="multipart/form-data">
+            <div class="row">
+                <!-- Basic Information -->
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Basic Information</h5>
+                            
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Name*</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="student_id" class="form-label">Student ID*</label>
+                                <input type="text" class="form-control" id="student_id" name="student_id" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" name="email">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Course Selection -->
+                <div class="col-md-6">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Course Enrollment</h5>
+                            
+                            <div class="mb-3">
+                                <label class="form-label">Select Courses*</label>
+                                <div class="d-flex gap-2 mb-2">
+                                    <select class="form-select" id="courseSelect">
+                                        <option value="">Choose a course...</option>
+                                        {% for course in courses %}
+                                        <option value="{{ course.id }}">{{ course.identifier }} - {{ course.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-primary" onclick="addCourse()">Add Course</button>
+                                </div>
+                                <div id="selectedCourses" class="mb-2">
+                                    <!-- Selected courses will appear here -->
+                                </div>
+                                <!-- Hidden input to store selected courses -->
+                                <input type="hidden" name="courses" id="coursesInput" required>
+                            </div>
+
+                            <script>
+                                let selectedCourses = [];
+                                
+                                function addCourse() {
+                                    const select = document.getElementById('courseSelect');
+                                    const courseId = select.value;
+                                    const courseName = select.options[select.selectedIndex].text;
+                                    
+                                    if (!courseId) return; // Don't add if no course selected
+                                    if (selectedCourses.includes(courseId)) return; // Don't add if already selected
+                                    
+                                    selectedCourses.push(courseId);
+                                    updateSelectedCoursesDisplay();
+                                    updateHiddenInput();
+                                    select.value = ''; // Reset select to default option
+                                }
+                                
+                                function removeCourse(courseId) {
+                                    selectedCourses = selectedCourses.filter(id => id !== courseId);
+                                    updateSelectedCoursesDisplay();
+                                    updateHiddenInput();
+                                }
+                                
+                                function updateSelectedCoursesDisplay() {
+                                    const container = document.getElementById('selectedCourses');
+                                    container.innerHTML = '';
+                                    
+                                    const select = document.getElementById('courseSelect');
+                                    selectedCourses.forEach(courseId => {
+                                        const option = Array.from(select.options).find(opt => opt.value === courseId);
+                                        if (option) {
+                                            const badge = document.createElement('span');
+                                            badge.className = 'badge bg-primary me-2 mb-2';
+                                            badge.innerHTML = `${option.text} <i class="fas fa-times ms-2" style="cursor: pointer" onclick="removeCourse('${courseId}')"></i>`;
+                                            container.appendChild(badge);
+                                        }
+                                    });
+                                }
+                                
+                                function updateHiddenInput() {
+                                    document.getElementById('coursesInput').value = selectedCourses.join(',');
+                                }
+                            </script>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photo Upload -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title mb-3">Student Photo</h5>
+                            
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="photo" class="form-label">Upload Photo*</label>
+                                        <input type="file" class="form-control" id="photo" name="photo" accept="image/*" required>
+                                        <small class="text-muted">Upload a clear frontal face photo for face recognition</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div id="photoPreview" class="d-none text-center">
+                                        <img id="preview" src="" alt="Photo Preview" class="img-fluid rounded" style="max-height: 200px;">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="d-flex justify-content-end mt-4">
+                <a href="{{ url_for('students_list') }}" class="btn btn-light me-2">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-2"></i>Register Student
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const photoInput = document.getElementById('photo');
+    const photoPreview = document.getElementById('photoPreview');
+    const preview = document.getElementById('preview');
+
+    photoInput.addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                photoPreview.classList.remove('d-none');
+            }
+            
+            reader.readAsDataURL(e.target.files[0]);
+        }
+    });
+});
+</script>
+{% endblock %} 

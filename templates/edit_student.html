@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div class="d-flex align-items-center">
+                <i class="fas fa-user-edit fa-2x text-primary me-2"></i>
+                <h4 class="mb-0">Edit Student</h4>
+            </div>
+            <a href="{{ url_for('students_list') }}" class="btn btn-light">
+                <i class="fas fa-arrow-left me-2"></i>Back
+            </a>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <img src="{{ url_for('static', filename=student.photo_path) }}" 
+                             alt="{{ student.name }}'s Photo"
+                             id="photoPreview"
+                             class="rounded-circle mb-3"
+                             style="width: 150px; height: 150px; object-fit: cover;">
+                        
+                        <h5 class="mb-0">{{ student.name }}</h5>
+                        <p class="text-muted">{{ student.student_id }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <form action="{{ url_for('edit_student', student_id=student.id) }}" method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label">Student ID</label>
+                        <input type="text" class="form-control" name="student_id" value="{{ student.student_id }}" required>
+                        <small class="text-muted">Student's roll number/ID</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" name="name" value="{{ student.name }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" name="email" value="{{ student.email or '' }}">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Courses</label>
+                        <div class="d-flex gap-2 mb-2">
+                            <select class="form-select" id="courseSelect">
+                                <option value="">Choose a course...</option>
+                                {% for course in courses %}
+                                <option value="{{ course.id }}">{{ course.identifier }} - {{ course.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="button" class="btn btn-primary" onclick="addCourse()">Add Course</button>
+                        </div>
+                        <div id="selectedCourses" class="mb-2">
+                            <!-- Selected courses will appear here -->
+                        </div>
+                        <!-- Hidden input to store selected courses -->
+                        <input type="hidden" name="courses" id="coursesInput" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Update Photo</label>
+                        <input type="file" class="form-control" name="photo" accept="image/*">
+                        <small class="text-muted">Leave empty to keep current photo</small>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Save Changes
+                        </button>
+                        <a href="{{ url_for('students_list') }}" class="btn btn-light">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewPhoto(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('photoPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+document.querySelector('input[type="file"]').addEventListener('change', function() {
+    previewPhoto(this);
+});
+
+let selectedCourses = [
+    {% for course in student.courses %}
+        "{{ course.id }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+// Initialize selected courses on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCoursesDisplay();
+    updateHiddenInput();
+});
+
+function addCourse() {
+    const select = document.getElementById('courseSelect');
+    const courseId = select.value;
+    const courseName = select.options[select.selectedIndex].text;
+    
+    if (!courseId) return; // Don't add if no course selected
+    if (selectedCourses.includes(courseId)) return; // Don't add if already selected
+    
+    selectedCourses.push(courseId);
+    updateSelectedCoursesDisplay();
+    updateHiddenInput();
+    select.value = ''; // Reset select to default option
+}
+
+function removeCourse(courseId) {
+    selectedCourses = selectedCourses.filter(id => id !== courseId);
+    updateSelectedCoursesDisplay();
+    updateHiddenInput();
+}
+
+function updateSelectedCoursesDisplay() {
+    const container = document.getElementById('selectedCourses');
+    container.innerHTML = '';
+    
+    const select = document.getElementById('courseSelect');
+    selectedCourses.forEach(courseId => {
+        const option = Array.from(select.options).find(opt => opt.value === courseId);
+        if (option) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-primary me-2 mb-2';
+            badge.innerHTML = `${option.text} <i class="fas fa-times ms-2" style="cursor: pointer" onclick="removeCourse('${courseId}')"></i>`;
+            container.appendChild(badge);
+        }
+    });
+}
+
+function updateHiddenInput() {
+    document.getElementById('coursesInput').value = selectedCourses.join(',');
+}
+</script>
+{% endblock %} 

@@ -1,0 +1,54 @@
+Gmail Setup Guide for Smart Attendance System
+
+1. Enable 2-Step Verification:
+   a. Go to your Google Account (https://myaccount.google.com)
+   b. Click on "Security" in the left navigation
+   c. Scroll to "2-Step Verification" and click on it
+   d. Follow the steps to turn on 2-Step Verification
+
+2. Generate App Password:
+   a. Go back to Security settings
+   b. Click on "2-Step Verification" again
+   c. Scroll to the bottom and click on "App passwords"
+   d. Select "Mail" for the app
+   e. Select "Windows Computer" for the device
+   f. Click "Generate"
+   g. Copy the 16-character password (remove spaces)
+
+3. Update Configuration:
+   a. Open test_email.py and replace these values:
+      SENDER_EMAIL = "your-email@gmail.com"     # Your Gmail address
+      SENDER_PASSWORD = "your-app-password"      # 16-character App Password
+      TEST_RECIPIENT = "your-email@gmail.com"    # Your Gmail address
+
+   b. Open app.py and update these values:
+      MAIL_USERNAME = "your-email@gmail.com"     # Your Gmail address
+      MAIL_PASSWORD = "your-app-password"        # 16-character App Password
+      MAIL_DEFAULT_SENDER = "your-email@gmail.com" # Your Gmail address
+
+4. Test Email Configuration:
+   a. Run the test script: python test_email.py
+   b. Check your Gmail inbox for the test email
+   c. Check the console output for any errors
+
+Common Issues:
+1. Authentication Error:
+   - Make sure you're using the App Password, not your regular Gmail password
+   - Ensure there are no spaces in the App Password
+   - Verify your email address is correct
+
+2. Connection Error:
+   - Check your internet connection
+   - Verify that port 465 is not blocked by your firewall
+
+3. Email Not Received:
+   - Check your Spam folder
+   - Verify the recipient email address
+   - Make sure your Gmail account hasn't been locked for security reasons
+
+Need Help?
+If you're still having issues:
+1. Check the exact error message in the console
+2. Verify all steps in this guide have been followed
+3. Make sure you're using a Gmail account (not a Google Workspace account)
+4. Try generating a new App Password 
