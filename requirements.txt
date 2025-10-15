@@ -14,7 +14,8 @@ dlib==19.24.2
 APScheduler==3.10.4
 python-dateutil==2.8.2
 Flask-Mail==0.9.1
-flask-desktop==0.1.1
 flaskwebgui==1.0.6
 python-dotenv==1.0.0
-pyinstaller==5.13.2 
+pyinstaller==5.13.2
+gunicorn==21.2.0
+gevent==24.2.1

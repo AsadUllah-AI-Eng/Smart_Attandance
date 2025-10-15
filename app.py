@@ -8,7 +8,17 @@ from werkzeug.utils import secure_filename
 from models import db, Student, Course, Attendance
 import csv
 from io import StringIO
-from face_recognition_service import FaceRecognitionService
+DEMO_MODE = os.getenv('DEMO_MODE', '0') == '1'
+
+# Optional imports for demo-friendly deployment (e.g., Railway). If face_recognition
+# stack is unavailable, fall back to a lightweight no-op implementation.
+FaceRecognitionService = None
+try:
+    if not DEMO_MODE:
+        from face_recognition_service import FaceRecognitionService  # heavy deps (dlib)
+except Exception:
+    FaceRecognitionService = None
+
 from background_jobs import BackgroundJobManager
 from email_service import EmailService
 import zipfile
@@ -33,15 +43,15 @@ app = Flask(__name__)
 app.config.from_object(config[env])
 app.secret_key = 'your-secret-key-here'  # Required for flash messages
 
-# Email configuration
+# Email configuration (read from environment for deployments)
 app.config.update(
-    MAIL_SERVER='smtp.gmail.com',
-    MAIL_PORT=465,  # Changed to 465 for SSL
-    MAIL_USE_SSL=True,  # Use SSL instead of TLS
-    MAIL_USE_TLS=False,
-    MAIL_USERNAME='syco6377@gmail.com',  # Replace with your Gmail
-    MAIL_PASSWORD='zprchyrqwyhuisgr',     # Replace with your App Password
-    MAIL_DEFAULT_SENDER='syco6377@gmail.com'  # Replace with your Gmail
+    MAIL_SERVER=os.getenv('MAIL_SERVER', 'smtp.gmail.com'),
+    MAIL_PORT=int(os.getenv('MAIL_PORT', '465')),
+    MAIL_USE_SSL=os.getenv('MAIL_USE_SSL', 'true').lower() == 'true',
+    MAIL_USE_TLS=os.getenv('MAIL_USE_TLS', 'false').lower() == 'true',
+    MAIL_USERNAME=os.getenv('MAIL_USERNAME', ''),
+    MAIL_PASSWORD=os.getenv('MAIL_PASSWORD', ''),
+    MAIL_DEFAULT_SENDER=os.getenv('MAIL_DEFAULT_SENDER', os.getenv('MAIL_USERNAME', ''))
 )
 
 # Initialize Flask-Mail
@@ -69,9 +79,12 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(CAPTURES_FOLDER, exist_ok=True)  # Create captures directory
 
 # Database configuration
-DB_PATH = os.path.join(basedir, 'database', 'attendance.db')
-os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
+# Respect DATABASE_URL if provided via environment (e.g., Railway),
+# otherwise default to local SQLite.
+if not os.getenv('DATABASE_URL'):
+    DB_PATH = os.path.join(basedir, 'database', 'attendance.db')
+    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{DB_PATH}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
@@ -96,10 +109,28 @@ face_service = None
 job_manager = None
 email_service = None
 
+class DummyFaceRecognitionService:
+    def __init__(self, app):
+        self.app = app
+        self.known_face_encodings = {}
+        self.known_face_names = {}
+        self.encoding_timestamp = {}
+    def _add_student_encoding(self, student):
+        return True
+    def _match_faces(self, image_path):
+        return []
+    def process_pending_attendance(self):
+        return None
+    def verify_photo(self, photo_path):
+        return {"is_valid": True, "message": "Demo mode: photo accepted", "face_count": 1}
+
 def initialize_services():
     global face_service, job_manager, email_service
     if face_service is None:
-        face_service = FaceRecognitionService(app)
+        if FaceRecognitionService is not None:
+            face_service = FaceRecognitionService(app)
+        else:
+            face_service = DummyFaceRecognitionService(app)
         # Load face encodings for existing students
         with app.app_context():
             students = Student.query.all()

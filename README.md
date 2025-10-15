@@ -43,12 +43,22 @@ cd Smart-Attendance-System
 - Add CMake to system PATH
 
 4. Create a virtual environment (recommended):
-```bash
+
+**On Windows:**
+```powershell
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+.\venv\Scripts\activate
 ```
 
-5. Install required packages:
+**On Unix/Mac:**
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+You should see `(venv)` at the start of your terminal prompt when the environment is active.
+
+5. Install required packages (with the virtual environment activated):
 ```bash
 pip install -r requirements.txt
 ```
@@ -74,6 +84,23 @@ python app.py
 ```
 
 2. Access the web interface at `http://localhost:5000`
+## Deploying to Railway (demo-friendly)
+
+1. Create a new Railway project and connect this repository.
+2. Ensure the following files exist in the repo root:
+   - `Procfile` with: `web: gunicorn -w 3 -k gevent --timeout 120 --bind 0.0.0.0:8080 wsgi:application`
+   - `wsgi.py` exposing `application` from `app.py`.
+3. Set environment variables in Railway:
+   - `PORT=8080` (Railway sets this automatically, Gunicorn binds to 8080)
+   - `FLASK_ENV=production`
+   - `DEMO_MODE=1` (optional: skips heavy face-recognition stack for demo)
+   - `DATABASE_URL` (optional: if using managed DB; otherwise SQLite is used)
+   - `MAIL_SERVER`, `MAIL_PORT`, `MAIL_USE_SSL`, `MAIL_USE_TLS`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_DEFAULT_SENDER`
+4. Deploy. Visit the Railway-provided URL.
+
+Notes:
+- In `DEMO_MODE=1`, face recognition is disabled to avoid dlib build issues on free tiers. All pages load, but recognition endpoints return no matches.
+- For full functionality, deploy on an environment where `dlib` and `face-recognition` can build or use a pre-built container image with those libraries.
 
 3. First-time setup:
    - Add courses through the Courses page
@@ -145,6 +172,14 @@ Smart-Attendance-System/
    - "No camera found": Check webcam connection
    - "Build wheel failed": Install Visual C++ Build Tools
    - "Email sending failed": Check your email configuration in .env file
+
+### Virtual Environment Issues
+- If you see `flask : The term 'flask' is not recognized...`, make sure your virtual environment is activated.
+- If you see `No module named flask`, install dependencies **after activating** the virtual environment.
+- Always activate the virtual environment before running or installing anything:
+  - On Windows: `.\venv\Scripts\activate`
+  - On Unix/Mac: `source venv/bin/activate`
+- If you have multiple Python versions, use `python3` instead of `python`.
 
 ## Security Considerations
 
